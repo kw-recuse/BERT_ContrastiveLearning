@@ -31,13 +31,13 @@ class ContrastiveDataset(Dataset):
         }
     
 
-def create_train_val_dataloaders(csv_path, batch_size=8, val_split=0.2, shuffle_train=True):
+def create_train_val_dataloaders(tokenizer, csv_path, batch_size, val_split, shuffle_train=True):
     df = pd.read_csv(csv_path)
     train_df, val_df = train_test_split(df, test_size=val_split, random_state=42)
     print(f"Training pairs: {len(train_df)}, Validation pairs: {len(val_df)}")
     
-    train_dataset = ContrastiveDataset(train_df)
-    val_dataset = ContrastiveDataset(val_df)
+    train_dataset = ContrastiveDataset(train_df, tokenizer)
+    val_dataset = ContrastiveDataset(val_df, tokenizer)
     
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle_train)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)

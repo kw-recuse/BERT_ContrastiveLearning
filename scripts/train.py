@@ -5,7 +5,7 @@ import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn import functional as F
 from models.base import load_tokenizer_and_model
-from data.dataloader import create_dataloaders
+from data.dataloader import create_train_val_dataloaders
 from utils.loss import ContrastiveLoss
 
 class Trainer:
@@ -20,6 +20,7 @@ class Trainer:
         self.model_name = self.config['model_name']
         self.device = self.config['device']
         self.batch_size = self.config['batch_size']
+        self.val_split = self.config['val_split']
         self.checkpoints_path = self.config['checkpoints_path']
         self.lr = self.config['lr']
         self.epoch_num = self.config['epoch_num']
@@ -27,7 +28,6 @@ class Trainer:
         self.num_logs_per_epoch = self.config['num_logs_per_epoch']
         self.use_fp16 = self.config['use_fp16']
         
-        self.log_step = len(self.train_dataloader) // self.num_logs_per_epoch
         self.patience_counter = 0
         self.best_val_loss = 0.0
         
@@ -39,10 +39,11 @@ class Trainer:
         self.model = self.model.to(self.device)
         
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
-        self.train_dataloader, self.val_dataloader = create_dataloaders(self.resume_path, self.jd_path, self.tokenizer, self.batch_size)
+        self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split)
         self.scaler = GradScaler()
         self.loss_fn = ContrastiveLoss
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
+        self.log_step = len(self.train_dataloader) // self.num_logs_per_epoch
         
         self.train_losses = []
         self.val_losses = []
@@ -93,6 +94,7 @@ class Trainer:
                     
                 total_val_loss += loss.item()
                 num_batchs += 1
+                
         avg_val_loss = total_val_loss / num_batchs
         avg_val_loss = round(avg_val_loss, 4)
         self.val_losses.append(avg_val_loss)
@@ -147,4 +149,3 @@ class Trainer:
                     self.patience_counter += 1
                     if self.patience_counter >= self.patience:
                         return # stop the training
-                    
