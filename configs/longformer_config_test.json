@@ -1,0 +1,11 @@
+{
+    "model_name": "allenai/longformer-base-4096",
+    "device": "cpu",
+    "batch_size": 4,
+    "checkpoints_path": "./checkpoints",
+    "lr": 2e-5,
+    "epoch_num": 3,
+    "patience": 5,
+    "num_logs_per_epoch": 5,
+    "use_fp16": true
+}
