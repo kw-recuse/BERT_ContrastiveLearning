@@ -41,7 +41,7 @@ class Trainer:
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split)
         self.scaler = GradScaler()
-        self.loss_fn = ContrastiveLoss
+        self.loss_fn = ContrastiveLoss()
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.log_step = len(self.train_dataloader) // self.num_logs_per_epoch
         
@@ -117,9 +117,10 @@ class Trainer:
                 if self.use_fp16:
                     with autocast():
                         resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                        jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
+                        jd_outputs = self.model(**jd_input_ids, attention_mask=jd_attention_mask)
                         resume_emb = resume_outputs.last_hidden_state[:, 0, :]
                         jd_emb = jd_outputs.last_hidden_state[:, 0, :]
+                        loss = self.loss_fn(resume_emb, jd_emb, labels)
                     self.scaler.scale(loss).backward()
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
