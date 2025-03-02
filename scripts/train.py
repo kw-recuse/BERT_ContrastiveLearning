@@ -27,6 +27,7 @@ class Trainer:
         self.csv_file_path = self.config['csv_file_path']
         self.num_logs_per_epoch = self.config['num_logs_per_epoch']
         self.use_fp16 = self.config['use_fp16']
+        self.patience = self.config['patience']
         
         self.patience_counter = 0
         self.best_val_loss = 0.0
@@ -117,7 +118,7 @@ class Trainer:
                 if self.use_fp16:
                     with autocast():
                         resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                        jd_outputs = self.model(**jd_input_ids, attention_mask=jd_attention_mask)
+                        jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
                         resume_emb = resume_outputs.last_hidden_state[:, 0, :]
                         jd_emb = jd_outputs.last_hidden_state[:, 0, :]
                         loss = self.loss_fn(resume_emb, jd_emb, labels)
@@ -133,20 +134,20 @@ class Trainer:
                     loss.backward()
                     self.optimizer.step()
                     
-            self.train_losses.append(round(loss.item(), 4))
-            progress_bar.set_postfix(Step=step+1, Loss=round(loss.item(), 4))
-                
-            # log step
-            if (step+1) % self.log_step == 0 or step == len(self.train_dataloader) - 1:
-                val_loss = self.evaluate_val_loss(epoch+1, step+1)
-                self.save_checkpoint(epoch+1, step+1, val_loss)
-                
-                
-                # early stopping
-                if val_loss < self.best_val_loss:
-                    self.best_val_loss = val_loss
-                    self.patience_counter = 0
-                else:
-                    self.patience_counter += 1
-                    if self.patience_counter >= self.patience:
-                        return # stop the training
+                self.train_losses.append(round(loss.item(), 4))
+                progress_bar.set_postfix(Step=step+1, Loss=round(loss.item(), 4))
+                    
+                # log step
+                if (step+1) % self.log_step == 0 or step == len(self.train_dataloader) - 1:
+                    val_loss = self.evaluate_val_loss(epoch+1, step+1)
+                    self.save_checkpoint(epoch+1, step+1, val_loss)
+                    
+                    
+                    # early stopping
+                    if val_loss < self.best_val_loss:
+                        self.best_val_loss = val_loss
+                        self.patience_counter = 0
+                    else:
+                        self.patience_counter += 1
+                        if self.patience_counter >= self.patience:
+                            return # stop the training
