@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 class ContrastiveDataset(Dataset):
-    def __init__(self, df, tokenizer, max_length=4096):
+    def __init__(self, df, tokenizer, max_length=2048):
         self.df = df.reset_index(drop=True)
         self.max_length = max_length
         self.tokenizer = tokenizer
