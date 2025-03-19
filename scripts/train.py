@@ -6,7 +6,7 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn import functional as F
 from models.base import load_tokenizer_and_model
 from data.dataloader import create_train_val_dataloaders
-from utils.loss import ContrastiveLoss
+from utils.loss import TripletLoss
 
 class Trainer:
     def __init__(self, config_file, **kwargs):
@@ -42,7 +42,7 @@ class Trainer:
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split)
         self.scaler = GradScaler()
-        self.loss_fn = ContrastiveLoss()
+        self.loss_fn = TripletLoss()
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.log_step = len(self.train_dataloader) // self.num_logs_per_epoch
         
