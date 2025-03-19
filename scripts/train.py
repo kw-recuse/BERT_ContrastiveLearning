@@ -97,7 +97,7 @@ class Trainer:
                 num_batchs += 1
                 
         avg_val_loss = total_val_loss / num_batchs
-        avg_val_loss = round(avg_val_loss, 4)
+        avg_val_loss = round(avg_val_loss, 8)
         self.val_losses.append(avg_val_loss)
         print(f"Epoch {epoch}, Step {step} - Avg Validation Loss: {avg_val_loss:.4f}")
         return avg_val_loss
@@ -134,8 +134,8 @@ class Trainer:
                     loss.backward()
                     self.optimizer.step()
                     
-                self.train_losses.append(round(loss.item(), 4))
-                progress_bar.set_postfix(Step=step+1, Loss=round(loss.item(), 4))
+                self.train_losses.append(round(loss.item(), 8))
+                progress_bar.set_postfix(Step=step+1, Loss=round(loss.item(), 8))
                     
                 # log step
                 if (step+1) % self.log_step == 0 or step == len(self.train_dataloader) - 1:

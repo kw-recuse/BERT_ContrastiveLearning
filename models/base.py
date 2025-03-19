@@ -1,9 +1,9 @@
-from transformers import LongformerTokenizer, LongformerModel
+from transformers import AutoTokenizer, AutoModel
 
 def load_tokenizer_and_model(model_name):
     try:
-        tokenizer = LongformerTokenizer.from_pretrained(model_name) 
-        model = LongformerModel.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name) 
+        model = AutoModel.from_pretrained(model_name)
         return tokenizer, model
     except:
         raise ValueError(f"{model_name} does not exist.")

@@ -1,6 +1,6 @@
 {
-    "model_name": "allenai/longformer-base-4096",
-    "device": "cpu",
+    "model_name": "bge-m3",
+    "device": "cuda",
     "batch_size": 4,
     "val_split": 0.1,
     "checkpoints_path": "./checkpoints",
@@ -8,5 +8,6 @@
     "epoch_num": 3,
     "patience": 5,
     "num_logs_per_epoch": 5,
-    "use_fp16": true
+    "use_fp16": true,
+    "gradient_clipping": true
 }
