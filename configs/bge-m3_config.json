@@ -1,7 +1,7 @@
 {
     "model_name": "BAAI/bge-m3",
     "device": "cuda",
-    "batch_size": 2,
+    "batch_size": 4,
     "val_split": 0.2,
     "checkpoints_path": "./checkpoints",
     "lr": 2e-5,
