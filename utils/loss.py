@@ -4,15 +4,13 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 
-class TripletLoss(nn.Module):
-    def __init__(self, margin=0.5):
-        super(TripletLoss, self).__init__()
-        self.margin = margin
+class ContrastiveLoss(nn.Module):
+    def __init__(self, reduction="mean"):
+        super(ContrastiveLoss, self).__init__()
+        self.reduction = reduction
 
-    def forward(self, anchor, positive, semi_negative, negative):
-        pos_dist = F.cosine_similarity(anchor, positive)
-        semi_neg_dist = F.cosine_similarity(anchor, semi_negative)
-        neg_dist = F.cosine_similarity(anchor, negative)
-
-        loss = torch.relu(pos_dist - semi_neg_dist + self.margin) + torch.relu(semi_neg_dist - neg_dist + self.margin)
-        return loss.mean()
+    def forward(self, resume_emb, jd_emb, labels):
+        cos_sim = nn.functional.cosine_similarity(resume_emb, jd_emb)
+        scaled_cos_sim = (cos_sim + 1) / 2
+        loss = nn.functional.mse_loss(scaled_cos_sim, labels, reduction=self.reduction)
+        return loss
