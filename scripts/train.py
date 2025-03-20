@@ -6,40 +6,8 @@ from torch.cuda.amp import autocast, GradScaler
 from torch.nn import functional as F
 from models.base import load_tokenizer_and_model
 from data.dataloader import create_train_val_dataloaders
+from utils.loss import ContrastiveLoss
 import torch.nn as nn
-
-
-import torch
-import torch.nn as nn
-
-class SoftContrastiveLoss(nn.Module):
-    """
-    A soft contrastive loss for similarity scores in [0, 1], where:
-    - label=1 indicates a perfect match (we want the embeddings to be close).
-    - label=0 indicates a complete mismatch (we want the embeddings to be at least `margin` apart).
-    - label=0.5 encourages an intermediate distance.
-    """
-    def __init__(self, margin=1.0):
-        super(SoftContrastiveLoss, self).__init__()
-        self.margin = margin
-
-    def forward(self, emb1, emb2, label):
-        # Ensure labels are float tensors
-        label = label.float()
-        # Compute Euclidean distance between embeddings
-        d = torch.norm(emb1 - emb2, p=2, dim=1)
-        
-        # Loss for similar pairs: encourage smaller distance
-        loss_similar = label * (d ** 2)
-        
-        # Loss for dissimilar pairs: encourage distance to be at least margin
-        loss_dissimilar = (1 - label) * (torch.clamp(self.margin - d, min=0.0) ** 2)
-        
-        # Combine losses
-        loss = loss_similar + loss_dissimilar
-        
-        # Return the average loss over the batch
-        return loss.mean()
 
 class Trainer:
     def __init__(self, config_file, **kwargs):
@@ -75,7 +43,7 @@ class Trainer:
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split)
         self.scaler = GradScaler()
-        self.loss_fn = SoftContrastiveLoss(margin=1.0)
+        self.loss_fn = ContrastiveLoss()
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.log_step = len(self.train_dataloader) // self.num_logs_per_epoch
         
