@@ -16,6 +16,9 @@ class Trainer:
             if key in kwargs:
                 self.config[key] = kwargs[key]
 
+        self.col_name1 = self.config['col_name1']
+        self.col_name2 = self.config['col_name2']
+        self.label_col = self.config['label_col']
         self.model_name = self.config['model_name']
         self.device = self.config['device']
         self.batch_size = self.config['batch_size']
@@ -31,7 +34,7 @@ class Trainer:
         self.embedding_option = self.config['embedding_option']
         
         self.patience_counter = 0
-        self.best_val_loss = 0.0
+        self.best_val_loss = 10000.0
         
         # make checjpoint dir
         os.makedirs(self.checkpoints_path, exist_ok=True)
@@ -44,7 +47,6 @@ class Trainer:
         self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split, self.col_name1, self.col_name2, self.label_col, self.max_length)
         self.scaler = GradScaler()
         self.loss_fn = ContrastiveLoss()
-        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
         self.log_step = len(self.train_dataloader) // self.num_logs_per_epoch
         
         self.train_losses = []
@@ -82,8 +84,9 @@ class Trainer:
             anchor_1_mask = anchor_1_attention_mask.unsqueeze(-1).expand_as(anchor_1_last_hidden)  # (N, T, hidden_size)
             anchor_2_mask = anchor_2_attention_mask.unsqueeze(-1).expand_as(anchor_2_last_hidden) # (N, T, hidden_size)
             
-            anchor_1_emb = (anchor_1_last_hidden * anchor_1_mask).sum(dim=1) / anchor_1_mask.sum(dim=1)  # (N, hidden_size)
-            anchor_2_emb = (anchor_2_last_hidden * anchor_2_mask).sum(dim=1) / anchor_2_mask.sum(dim=1) # (N, hidden_size)
+            epsilon = 1e-8
+            anchor_1_emb = (anchor_1_last_hidden * anchor_1_mask).sum(dim=1) / (anchor_1_mask.sum(dim=1) + epsilon)  # (N, hidden_size)
+            anchor_2_emb = (anchor_2_last_hidden * anchor_2_mask).sum(dim=1) / (anchor_2_mask.sum(dim=1) + epsilon) # (N, hidden_size)
             
         return anchor_1_emb, anchor_2_emb
         
@@ -99,7 +102,7 @@ class Trainer:
                 resume_attention_mask = batch["resume_attention_mask"].to(self.device)
                 jd_input_ids = batch["jd_input_ids"].to(self.device)
                 jd_attention_mask = batch["jd_attention_mask"].to(self.device)
-                labels = batch["label"].to(self.device)
+                labels = batch["label"].to(self.device).float()
                 
                 if self.use_fp16:
                     with autocast():
@@ -127,7 +130,7 @@ class Trainer:
                 resume_attention_mask = batch["resume_attention_mask"].to(self.device)
                 jd_input_ids = batch["jd_input_ids"].to(self.device)
                 jd_attention_mask = batch["jd_attention_mask"].to(self.device)
-                labels = batch["label"].to(self.device)
+                labels = batch["label"].to(self.device).float()
 
                 self.optimizer.zero_grad()
                 
