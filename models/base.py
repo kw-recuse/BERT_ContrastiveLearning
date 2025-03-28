@@ -1,5 +1,6 @@
 from transformers import AutoTokenizer, AutoModel
 
+# BGE-m3, KoBERT, KoDistillBERT
 def load_tokenizer_and_model(model_name):
     try:
         tokenizer = AutoTokenizer.from_pretrained(model_name) 

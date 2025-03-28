@@ -7,16 +7,14 @@ from torch.nn import functional as F
 from models.base import load_tokenizer_and_model
 from data.dataloader import create_train_val_dataloaders
 from utils.loss import ContrastiveLoss
-import torch.nn as nn
 
 class Trainer:
     def __init__(self, config_file, **kwargs):
         self.config = self._load_config(config_file)
         
-        for key in ['checkpoints_path', 'csv_file_path']:
+        for key in ['checkpoints_path', 'csv_file_path', 'col_name1', 'col_name2', 'label_col']:
             if key in kwargs:
                 self.config[key] = kwargs[key]
-                
 
         self.model_name = self.config['model_name']
         self.device = self.config['device']
@@ -29,6 +27,8 @@ class Trainer:
         self.num_logs_per_epoch = self.config['num_logs_per_epoch']
         self.use_fp16 = self.config['use_fp16']
         self.patience = self.config['patience']
+        self.max_length = self.config['max_length']
+        self.embedding_option = self.config['embedding_option']
         
         self.patience_counter = 0
         self.best_val_loss = 0.0
@@ -41,7 +41,7 @@ class Trainer:
         self.model = self.model.to(self.device)
         
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
-        self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split)
+        self.train_dataloader, self.val_dataloader = create_train_val_dataloaders(self.tokenizer, self.csv_file_path, self.batch_size, self.val_split, self.col_name1, self.col_name2, self.label_col, self.max_length)
         self.scaler = GradScaler()
         self.loss_fn = ContrastiveLoss()
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
@@ -65,6 +65,27 @@ class Trainer:
             'scaler_state_dict': self.scaler.state_dict()
         }, checkpoint_path)
         tqdm.write(f"Checkpoint saved at {checkpoint_path}")
+    
+    
+    def one_step_forward(self, anchor_1_input_ids, anchor_1_attention_mask, anchor_2_input_ids, anchor_2_attention_mask):
+        anchor_1_outputs = self.model(anchor_1_input_ids, attention_mask=anchor_1_attention_mask)
+        anchor_2_outputs = self.model(anchor_2_input_ids, attention_mask=anchor_2_attention_mask)
+        
+        if self.embedding_option == "CLS":
+            anchor_1_emb = anchor_1_outputs.last_hidden_state[:, 0, :]
+            anchor_2_emb = anchor_2_outputs.last_hidden_state[:, 0, :]
+        else:
+            # self.embedding_option == "Mean":
+            anchor_1_last_hidden = anchor_1_outputs.last_hidden_state # (N, T, hidden_size)
+            anchor_2_last_hidden = anchor_2_outputs.last_hidden_state # (N, T, hidden_size)
+            
+            anchor_1_mask = anchor_1_attention_mask.unsqueeze(-1).expand_as(anchor_1_last_hidden)  # (N, T, hidden_size)
+            anchor_2_mask = anchor_2_attention_mask.unsqueeze(-1).expand_as(anchor_2_last_hidden) # (N, T, hidden_size)
+            
+            anchor_1_emb = (anchor_1_last_hidden * anchor_1_mask).sum(dim=1) / anchor_1_mask.sum(dim=1)  # (N, hidden_size)
+            anchor_2_emb = (anchor_2_last_hidden * anchor_2_mask).sum(dim=1) / anchor_2_mask.sum(dim=1) # (N, hidden_size)
+            
+        return anchor_1_emb, anchor_2_emb
         
         
     def evaluate_val_loss(self, epoch, step):
@@ -82,16 +103,10 @@ class Trainer:
                 
                 if self.use_fp16:
                     with autocast():
-                        resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                        jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
-                        resume_emb = resume_outputs.last_hidden_state[:, 0, :]
-                        jd_emb = jd_outputs.last_hidden_state[:, 0, :]
+                        resume_emb, jd_emb = self.one_step_forward(resume_input_ids, resume_attention_mask, jd_input_ids, jd_attention_mask)
                         loss = self.loss_fn(resume_emb, jd_emb, labels)
                 else:
-                    resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                    jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
-                    resume_emb = resume_outputs.last_hidden_state[:, 0, :]
-                    jd_emb = jd_outputs.last_hidden_state[:, 0, :]
+                    resume_emb, jd_emb = self.one_step_forward(resume_input_ids, resume_attention_mask, jd_input_ids, jd_attention_mask)
                     loss = self.loss_fn(resume_emb, jd_emb, labels)
                     
                 total_val_loss += loss.item()
@@ -118,19 +133,13 @@ class Trainer:
                 
                 if self.use_fp16:
                     with autocast():
-                        resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                        jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
-                        resume_emb = resume_outputs.last_hidden_state[:, 0, :]
-                        jd_emb = jd_outputs.last_hidden_state[:, 0, :]
-                        loss = self.loss_fn(resume_emb, jd_emb, labels)
+                        resume_emb, jd_emb = self.one_step_forward(resume_input_ids, resume_attention_mask, jd_input_ids, jd_attention_mask)
+                        loss = self.loss_fn(resume_emb, jd_emb, labels)   
                     self.scaler.scale(loss).backward()
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
                 else:
-                    resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                    jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
-                    resume_emb = resume_outputs.last_hidden_state[:, 0, :]
-                    jd_emb = jd_outputs.last_hidden_state[:, 0, :]
+                    resume_emb, jd_emb = self.one_step_forward(resume_input_ids, resume_attention_mask, jd_input_ids, jd_attention_mask)
                     loss = self.loss_fn(resume_emb, jd_emb, labels)
                     loss.backward()
                     self.optimizer.step()
