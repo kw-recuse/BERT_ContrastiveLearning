@@ -151,7 +151,7 @@ class Trainer:
                 progress_bar.set_postfix(Step=step+1, Loss=round(loss.item(), 8))
                     
                 # log step
-                if (step+1) % self.log_step == 0 or step == len(self.train_dataloader) - 1:
+                if step == 0 or (step+1) % self.log_step == 0 or step == len(self.train_dataloader) - 1:
                     val_loss = self.evaluate_val_loss(epoch+1, step+1)
                     self.save_checkpoint(epoch+1, step+1, val_loss)
                     
