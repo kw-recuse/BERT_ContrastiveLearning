@@ -1,6 +1,6 @@
 import os 
 import json
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import torch
 from torch.cuda.amp import autocast, GradScaler
 from torch.nn import functional as F
@@ -163,4 +163,5 @@ class Trainer:
                     else:
                         self.patience_counter += 1
                         if self.patience_counter >= self.patience:
+                            print(f"No improvement in validation loss for {self.patience} consecutive checks. Stopping training.")
                             return # stop the training
