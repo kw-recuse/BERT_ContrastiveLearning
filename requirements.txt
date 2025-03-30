@@ -1,0 +1,4 @@
+Flask==2.2.2
+transformers==4.27.4
+torch==2.0.1
+safetensors==0.3.1

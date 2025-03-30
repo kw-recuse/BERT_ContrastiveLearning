@@ -155,7 +155,6 @@ class Trainer:
                     val_loss = self.evaluate_val_loss(epoch+1, step+1)
                     self.save_checkpoint(epoch+1, step+1, val_loss)
                     
-                    
                     # early stopping
                     if val_loss < self.best_val_loss:
                         self.best_val_loss = val_loss
