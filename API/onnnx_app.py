@@ -11,7 +11,6 @@ def clean_text(text):
     text = re.sub(r'[^\w\s]', '', text)
     return text
 
-
 model_name = "recuse/distiluse-base-multilingual-cased-v2-mean-dataV1"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 onnx_session = onnxruntime.InferenceSession("distiluse-base-multilingual-cased-v2-mean-dataV1.onnx", providers=["CPUExecutionProvider"])
@@ -41,4 +40,4 @@ def embed():
     return jsonify({"embedding": embedding})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5004)
+    app.run(debug=True, host='0.0.0.0', port=5009)
