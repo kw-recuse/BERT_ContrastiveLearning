@@ -1,5 +1,5 @@
 {
-    "model_name": "https://huggingface.co/recuse/distiluse-base-multilingual-cased-v2-mean-dataV1",
+    "model_name": "recuse/distiluse-base-multilingual-cased-v2-mean-dataV1",
     "device": "cuda",
     "batch_size": 8,
     "val_split": 0.03,

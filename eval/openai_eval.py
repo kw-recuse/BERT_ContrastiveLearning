@@ -62,8 +62,8 @@ class OpenAI_Evaluator:
             anchor_2_texts = batch[self.col_name2].astype(str).tolist()
             labels = batch[self.label_col].astype(float).tolist()
 
-            anchor_1_vecs = [self.get_openai_embedding(text) for text in anchor_1_texts]
-            anchor_2_vecs = [self.get_openai_embedding(text) for text in anchor_2_texts]
+            anchor_1_vecs = [self._get_openai_embedding(text) for text in anchor_1_texts]
+            anchor_2_vecs = [self._get_openai_embedding(text) for text in anchor_2_texts]
 
             anchor_1_emb = torch.tensor(anchor_1_vecs, dtype=torch.float32).to(self.device)
             anchor_2_emb = torch.tensor(anchor_2_vecs, dtype=torch.float32).to(self.device)
