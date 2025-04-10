@@ -1,0 +1,12 @@
+{
+    "model_name": "sentence-transformers/distiluse-base-multilingual-cased-v2",
+    "device": "cuda",
+    "batch_size": 8,
+    "val_split": 0.03,
+    "col_name1": "resume",
+    "col_name2": "jd",
+    "label_col": "label",
+    "use_fp16": true,
+    "max_length": 512,
+    "embedding_option": "mean"
+}
