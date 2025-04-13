@@ -16,7 +16,7 @@ model = AutoModel.from_pretrained("recuse/distiluse-base-multilingual-cased-v2-m
 
 # inference
 def get_embedding(text):
-    inputs = tokenizer(text, return_tensors="pt")
+    inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
     with torch.no_grad():
         embeddings = model(**inputs).last_hidden_state.mean(dim=1)
     return embeddings.squeeze().tolist()
@@ -35,11 +35,11 @@ def embed():
     return jsonify({"embedding": embedding})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5004)
 
 """
 resume_str = "...."
-curl -X POST http://127.0.0.1:5000/embed \
+curl -X POST http://127.0.0.1:5004/embed \
 -H "Content-Type: application/json" \
 -d '{"text": resume_str}'
 """
