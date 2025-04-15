@@ -1,0 +1,15 @@
+{
+    "model_name": "sentence-transformers/paraphrase-multilingual-mpnet-base-v2",
+    "device": "cuda",
+    "batch_size": 8,
+    "val_split": 0.03,
+    "checkpoints_path": "./checkpoints",
+    "lr": 2e-5,
+    "epoch_num": 3,
+    "patience": 5,
+    "num_logs_per_epoch": 5,
+    "use_fp16": true,
+    "gradient_clipping": true,
+    "max_length": 512,
+    "embedding_option": "mean"
+}
