@@ -1,0 +1,8 @@
+{
+    "col_name1": "resume",
+    "col_name2": "jd",
+    "label_col": "label",
+    "val_split": 0.03,
+    "batch_size": 1,
+    "device": "cuda"
+}
