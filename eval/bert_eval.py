@@ -1,4 +1,3 @@
-import os
 import json
 import torch
 from torch.cuda.amp import autocast

@@ -36,10 +36,12 @@ class ChunkBERT_Eval:
 
         self.stop_ko = {"및", "등", "관련", "경험", "위한", "있는", "대한"}
         self.stop_en = {"and", "the", "for", "with", "of", "in", "to", "a", "an"}
+        
 
-    def preprocess(text, min_tokens):
-        raw_paragraphs = re.split(r"\n{3,}", text.strip())
-        return raw_paragraphs
+    def preprocess(self, text):
+        raw_paragraphs = re.split(r"\n{2,}", text.strip())
+        return [p.strip() for p in raw_paragraphs if p.strip()]
+    
 
     @torch.inference_mode()
     def embed_paragraphs(self, paragraphs, batch_size=16):
