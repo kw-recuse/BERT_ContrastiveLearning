@@ -1,14 +1,13 @@
 import re
 import json
 import torch
-import faiss
-import pandas as pd
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModel
 from torch.nn.functional import normalize
 from utils.loss import ContrastiveLoss
-from data.dataloader import create_train_val_dataloaders
-
+import numpy as np
+import faiss
+import pandas as pd
 
 class ChunkBERT_Eval:
     def __init__(self, config_file, csv_file_path, col_name1, col_name2, label_col, k):
@@ -35,31 +34,12 @@ class ChunkBERT_Eval:
 
         self.loss_fn = ContrastiveLoss().to(self.device)
 
-        _, self.val_dataloader = create_train_val_dataloaders(
-            self.tokenizer,
-            self.csv_file_path,
-            self.batch_size,
-            self.val_split,
-            self.col_name1,
-            self.col_name2,
-            self.label_col,
-            self.max_length
-        )
-
         self.stop_ko = {"및", "등", "관련", "경험", "위한", "있는", "대한"}
         self.stop_en = {"and", "the", "for", "with", "of", "in", "to", "a", "an"}
 
-    def preprocess(self, text, min_tokens=3):
-        raw_paragraphs = re.split(r"(?:\n{2,}|[•\-]\s*)", text)
-        paragraphs = []
-
-        for p in raw_paragraphs:
-            tokens = re.findall(r"[가-힣A-Za-z0-9\+#\.]+", p.lower())
-            tokens = [t for t in tokens if t not in self.stop_ko and t not in self.stop_en]
-            if len(tokens) >= min_tokens:
-                paragraphs.append(" ".join(tokens))
-
-        return paragraphs
+    def preprocess(text, min_tokens):
+        raw_paragraphs = re.split(r"\n{3,}", text.strip())
+        return raw_paragraphs
 
     @torch.inference_mode()
     def embed_paragraphs(self, paragraphs, batch_size=16):
@@ -79,36 +59,54 @@ class ChunkBERT_Eval:
             all_embs.append(sent_emb.cpu())
 
         return torch.cat(all_embs).numpy()
+    
+    def topk_similarity(self, src_emb: np.ndarray, tgt_emb: np.ndarray, k: int = 3) -> float:
+        dim = tgt_emb.shape[1]
+        index = faiss.IndexFlatIP(dim)  
+        index.add(tgt_emb)        
+        k = min(k, tgt_emb.shape[0])    
+        sims, _ = index.search(src_emb, k) 
+        return float(sims.mean() + 1) / 2  
+    
+    def doc_similarity(self, resume: str, jd: str, k: int = 3, symmetric: bool = True) -> float:
+        res_paras = self.preprocess(resume)
+        jd_paras  = self.preprocess(jd)
+
+        res_emb = self.embed_paragraphs(res_paras)
+        jd_emb  = self.embed_paragraphs(jd_paras)
+        sim_r2j = self.topk_similarity(res_emb, jd_emb, k)
+
+        if not symmetric:
+            return sim_r2j
+
+        sim_j2r = self.topk_similarity(jd_emb, res_emb, k)
+        return (sim_r2j + sim_j2r) / 2
+
 
     def evaluate(self):
         self.model.eval()
-        self.loss_fn.eval()
+
+        df = pd.read_csv(self.csv_file_path)
 
         total_loss = 0.0
-        num_batches = 0
+        num_rows = 0
 
-        with torch.no_grad():
-            for batch in tqdm(self.val_dataloader, desc="ChunkBERT Evaluating"):
-                resume_input_ids = batch["resume_input_ids"].to(self.device)
-                resume_attention_mask = batch["resume_attention_mask"].to(self.device)
-                jd_input_ids = batch["jd_input_ids"].to(self.device)
-                jd_attention_mask = batch["jd_attention_mask"].to(self.device)
-                labels = batch["label"].to(self.device).float()
+        for _, row in tqdm(df.iterrows(), total=len(df), desc="ChunkBERT Evaluating"):
+            resume = str(row[self.col_name1])
+            jd     = str(row[self.col_name2])
+            label  = float(row[self.label_col])
 
-                resume_outputs = self.model(resume_input_ids, attention_mask=resume_attention_mask)
-                jd_outputs = self.model(jd_input_ids, attention_mask=jd_attention_mask)
+            # similarity in [0, 1]
+            sim_score = self.doc_similarity(resume, jd, k=self.k)
 
-                def mean_pool(last_hidden, mask):
-                    mask = mask.unsqueeze(-1).float()
-                    return (last_hidden * mask).sum(1) / mask.sum(1).clamp(min=1e-9)
+            # compute MSE between sim and label
+            sim_tensor = torch.tensor([sim_score], dtype=torch.float32, device=self.device)
+            label_tensor = torch.tensor([label], dtype=torch.float32, device=self.device)
 
-                resume_vec = mean_pool(resume_outputs.last_hidden_state, resume_attention_mask)
-                jd_vec = mean_pool(jd_outputs.last_hidden_state, jd_attention_mask)
-
-                loss = self.loss_fn(resume_vec, jd_vec, labels)
-                total_loss += loss.item()
-                num_batches += 1
-
-        avg_loss = round(total_loss / num_batches, 8)
-        print(f"ChunkBERT Validation Contrastive Loss: {avg_loss}")
-        return avg_loss
+            mse = torch.nn.functional.mse_loss(sim_tensor, label_tensor)
+            total_loss += mse.item()
+            num_rows += 1
+            
+        avg_rmse = round(total_loss / num_rows, 8)
+        print(f"ChunkBERT Validation Contrastive Loss: {avg_rmse}")
+        return avg_rmse
