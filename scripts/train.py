@@ -118,7 +118,11 @@ class Trainer:
         avg_val_loss = total_val_loss / num_batchs
         avg_val_loss = round(avg_val_loss, 8)
         self.val_losses.append(avg_val_loss)
-        print(f"Epoch {epoch}, Step {step} - Avg Validation Loss: {avg_val_loss:.4f}")
+        log_str = f"Epoch {epoch}, Step {step} - Avg Validation Loss: {avg_val_loss:.4f}"
+        print(log_str)
+        with open("train.log", "a") as f:
+            f.write(log_str + "\n")
+            
         return avg_val_loss
         
     def train(self):
@@ -162,5 +166,4 @@ class Trainer:
                     else:
                         self.patience_counter += 1
                         if self.patience_counter >= self.patience:
-                            print(f"No improvement in validation loss for {self.patience} consecutive checks. Stopping training.")
-                            return # stop the training
+                            print(f"No improvement in validation los

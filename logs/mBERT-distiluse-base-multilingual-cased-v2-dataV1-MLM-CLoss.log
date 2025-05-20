@@ -1,0 +1,10 @@
+Epoch 1, Step 1 - Avg Validation Loss: 0.2948
+Epoch 1, Step 352 - Avg Validation Loss: 0.1177
+Epoch 1, Step 704 - Avg Validation Loss: 0.1146
+Epoch 1, Step 1056 - Avg Validation Loss: 0.1074
+Epoch 1, Step 1408 - Avg Validation Loss: 0.1063
+Epoch 1, Step 1760 - Avg Validation Loss: 0.1082
+Epoch 1, Step 1761 - Avg Validation Loss: 0.1081
+Epoch 2, Step 1 - Avg Validation Loss: 0.1080
+Epoch 2, Step 352 - Avg Validation Loss: 0.1074
+Epoch 2, Step 704 - Avg Validation Loss: 0.1069
