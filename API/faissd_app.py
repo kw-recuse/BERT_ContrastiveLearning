@@ -4,6 +4,10 @@ import numpy as np
 
 app = Flask(__name__)
 
+def l2_normalize(x, epsilon=1e-10):
+    norm = np.linalg.norm(x, axis=1, keepdims=True)
+    return x / (norm + epsilon)
+
 def get_top_k_cosine_matches(query_embedding, embeddings_list, k):
     ''' 중심이 되는 embedding(query_embedding)과 이를 비교할 embedding들이 리스트(embeddings_list) 와 k를 입력받아
     embeddings_list에서 query_embedding와 가장 유사한 embedding들의 index number와 유사도를 json형태로 반환해줍니다. 
@@ -36,7 +40,9 @@ def get_top_k_cosine_matches(query_embedding, embeddings_list, k):
     if query_embedding.shape[0] != embeddings_list.shape[1]:
         raise ValueError("query_embedding and embeddings_list must have matching dimensions")
 
-
+    query_embedding = l2_normalize(query_embedding.reshape(1, -1).astype('float32'))
+    embeddings_list = l2_normalize(embeddings_list.astype('float32'))
+    
     query_embedding = query_embedding.astype('float32').reshape(1, -1) # (1, D)
     embeddings_list = embeddings_list.astype('float32') # (N, D)
 
