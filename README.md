@@ -60,6 +60,43 @@ Conducted ablation studies varying two approaches: cross-encoder and single-enco
 | Bge-m3-korean + MLP + BCE   | 0.0016      | 0.0803      | 568M     |
 
 
+## How to Use
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/kw-recuse/BERT_ContrastiveLearning.git](https://github.com/kw-recuse/BERT_ContrastiveLearning.git)
+    ```
+
+2.  **Navigate to the directory:**
+    ```bash
+    cd BERT_ContrastiveLearning
+    ```
+
+3.  **Run the training:**
+
+    You can start the training process by importing and using the `Trainer` class, as shown in the example below (e.g., in a Python script or notebook).
+
+    ```python
+    import sys
+    
+    # Add the repository path if needed (e.g., if running from a notebook outside the main directory)
+    # sys.path.append('/path/to/BERT_ContrastiveLearning')
+
+    from scripts.train import Trainer
+
+    # Initialize the Trainer with your configuration
+    trainer = Trainer(
+        config_file="configs/train/multiling_BERT.json",
+        checkpoints_path="checkpoints", 
+        csv_file_path="output_file.csv", # path to downloaded csv file from Huggingface
+        col_name1='resume',
+        col_name2='jd',
+        label_col='label'
+    )
+
+    # Start training
+    trainer.train()
+    ```
 ## Future Plans
 
 - Knowledge Distillation
