@@ -166,4 +166,5 @@ class Trainer:
                     else:
                         self.patience_counter += 1
                         if self.patience_counter >= self.patience:
-                            print(f"No improvement in validation los
+                            print(f"No improvement in validation loss for {self.patience} steps. STOPPED TRAINING")
+                            return
