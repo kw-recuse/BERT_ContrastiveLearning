@@ -97,6 +97,9 @@ Conducted ablation studies varying two approaches: cross-encoder and single-enco
     # Start training
     trainer.train()
     ```
+
+[notebook example](https://github.com/kw-recuse/BERT_ContrastiveLearning/blob/main/notebooks/mBERT_fine_tuning_example.ipynb)
+
 ## Future Plans
 
 - Knowledge Distillation
