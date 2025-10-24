@@ -30,7 +30,7 @@ class ContrastiveDataset(Dataset):
             "resume_attention_mask": resume_encoding["attention_mask"].squeeze(0),
             "jd_input_ids": jd_encoding["input_ids"].squeeze(0),
             "jd_attention_mask": jd_encoding["attention_mask"].squeeze(0),
-            "label": torch.tensor(label, dtype=torch.long)
+            "label": torch.tensor(label, dtype=torch.float)
         }
 
 
