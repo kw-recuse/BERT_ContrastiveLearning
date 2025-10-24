@@ -35,7 +35,7 @@ class ContrastiveDataset(Dataset):
 
 
 def create_train_val_dataloaders(tokenizer, csv_path, batch_size, val_split, col_name1, col_name2, label_col, max_length, shuffle_train=True):
-    df = pd.read_csv(csv_path)
+    df = pd.pd.read_csv(csv_path, encoding='cp949')
     train_df, val_df = train_test_split(df, test_size=val_split, random_state=42)
     print(f"Training pairs: {len(train_df)}, Validation pairs: {len(val_df)}")
     
